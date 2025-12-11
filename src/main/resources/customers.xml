@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customers>
+    <customer>
+        <id>1</id>
+        <firstName>John</firstName>
+        <lastName>Doe</lastName>
+        <email>john.doe@example.com</email>
+        <age>34</age>
+    </customer>
+    <customer>
+        <id>2</id>
+        <firstName>Jane</firstName>
+        <lastName>Smith</lastName>
+        <email>jane.smith@example.com</email>
+        <age>29</age>
+    </customer>
+</customers>

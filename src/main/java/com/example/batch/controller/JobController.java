@@ -78,5 +78,64 @@ public class JobController {
         jobLauncher.run(job, jobParameters);
         return "RepositoryItemJob 실행 완료";
     }
-}
 
+    @PostMapping("/multi-resource")
+    public String runMultiResourceJob() throws Exception {
+        Job job = jobs.get("multiResourceJob");
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addLong("time", System.currentTimeMillis())
+                .toJobParameters();
+        jobLauncher.run(job, jobParameters);
+        return "MultiResourceJob 실행 완료";
+    }
+
+    @PostMapping("/jpa-paging")
+    public String runJpaPagingJob() throws Exception {
+        Job job = jobs.get("jpaPagingJob");
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addLong("time", System.currentTimeMillis())
+                .toJobParameters();
+        jobLauncher.run(job, jobParameters);
+        return "JpaPagingJob 실행 완료";
+    }
+
+    @PostMapping("/jpa-cursor")
+    public String runJpaCursorJob() throws Exception {
+        Job job = jobs.get("jpaCursorJob");
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addLong("time", System.currentTimeMillis())
+                .toJobParameters();
+        jobLauncher.run(job, jobParameters);
+        return "JpaCursorJob 실행 완료";
+    }
+
+    @PostMapping("/hint-jpa-cursor")
+    public String runHintSettableJpaCursorJob() throws Exception {
+        Job job = jobs.get("hintSettableJpaCursorJob");
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addLong("time", System.currentTimeMillis())
+                .toJobParameters();
+        jobLauncher.run(job, jobParameters);
+        return "HintSettableJpaCursorJob 실행 완료";
+    }
+
+    @PostMapping("/stax-xml")
+    public String runStaxXmlJob() throws Exception {
+        Job job = jobs.get("staxEventJob");
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addLong("time", System.currentTimeMillis())
+                .toJobParameters();
+        jobLauncher.run(job, jobParameters);
+        return "StaxEventJob 실행 완료";
+    }
+
+    @PostMapping("/mapping-sql")
+    public String runMappingSqlJob() throws Exception {
+        Job job = jobs.get("mappingSqlQueryJob");
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addLong("time", System.currentTimeMillis())
+                .toJobParameters();
+        jobLauncher.run(job, jobParameters);
+        return "MappingSqlQueryJob 실행 완료";
+    }
+}

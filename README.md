@@ -49,6 +49,36 @@ src/main/java/com/example/batch/
 - **특징**: JPA Repository를 사용한 읽기 (개념 예제)
 - **사용 예**: `repositoryItemReader()` 메서드 참조
 
+### 7. MultiResourceItemReader (다중 CSV)
+- **용도**: 여러 CSV 파일을 순차적으로 읽기
+- **특징**: 파일을 나눠 관리할 때 유용
+- **사용 예**: `multiResourceItemReader()` 메서드 참조
+- **파일**: `products-part1.csv`, `products-part2.csv`
+
+### 8. JpaPagingItemReader
+- **용도**: JPA 엔티티를 페이징 방식으로 읽기
+- **특징**: 페이징 단위 조회로 메모리 사용 제어
+- **사용 예**: `jpaPagingItemReader()` 메서드 참조
+
+### 9. JpaCursorItemReader
+- **용도**: JPA EntityManager를 이용해 커서 스타일로 읽기
+- **특징**: JPA 기반 스트리밍 처리
+- **사용 예**: `jpaCursorItemReader()` 메서드 참조
+
+### 10. HintSettableJpaCursorItemReader
+- **용도**: JPA 커서 기반 읽기 + 쿼리 힌트(fetch size, read-only 등) 적용 가능
+- **특징**: Hibernate 쿼리 힌트를 활용해 성능(메모리 사용량·속도) 최적화 실험 가능. 기본 `JpaCursorItemReader` 대비 더 세밀한 튜닝이 필요한 경우 사용
+- **사용 예**: `hintSettableJpaCursorItemReader()` 메서드 참조
+
+### 11. StaxEventItemReader (XML 스트리밍)
+- **용도**: XML을 스트리밍 방식으로 읽기
+- **특징**: 큰 XML도 메모리 효율적으로 처리
+- **파일**: `customers.xml`
+
+### 12. MappingSqlQuery 스타일 (커스텀 RowMapper)
+- **용도**: RowMapper 기반 SQL 결과를 객체로 매핑
+- **특징**: SQL+RowMapper로 세밀한 매핑 제어
+
 ## 실행 방법
 
 ### 1. 애플리케이션 실행
@@ -59,12 +89,20 @@ src/main/java/com/example/batch/
 ### 2. Job 실행 (REST API)
 애플리케이션 실행 후 다음 엔드포인트로 각 Job을 실행할 수 있습니다:
 
-- `POST http://localhost:8080/api/jobs/jdbc-cursor` - JdbcCursorItemReader 사용
-- `POST http://localhost:8080/api/jobs/jdbc-paging` - JdbcPagingItemReader 사용
-- `POST http://localhost:8080/api/jobs/flat-file` - FlatFileItemReader 사용
-- `POST http://localhost:8080/api/jobs/json` - JsonItemReader 사용
-- `POST http://localhost:8080/api/jobs/list-item` - ListItemReader 사용
-- `POST http://localhost:8080/api/jobs/repository-item` - RepositoryItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/jdbc-cursor` - JdbcCursorItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/jdbc-paging` - JdbcPagingItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/flat-file` - FlatFileItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/json` - JsonItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/list-item` - ListItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/repository-item` - RepositoryItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/multi-resource` - MultiResourceItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/jpa-paging` - JpaPagingItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/jpa-cursor` - JpaCursorItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/hint-jpa-cursor` - HintSettableJpaCursorItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/stax-xml` - StaxEventItemReader 사용
+- `curl -X POST http://localhost:8080/api/jobs/mapping-sql` - MappingSqlQuery 스타일 Reader 사용
+
+Swagger UI: http://localhost:8080/swagger-ui.html
 
 ### 3. H2 콘솔 접속
 - URL: `http://localhost:8080/h2-console`
@@ -136,4 +174,3 @@ JdbcPagingItemReader        | 처리시간:     52 ms | 아이템수:   8 | 처�
 - Job 실행 결과는 콘솔 로그와 H2 데이터베이스에서 확인할 수 있습니다
 - `application.yml`에서 `spring.batch.job.enabled: false`로 설정되어 있어 자동 실행되지 않습니다
 - 성능 테스트는 테스트 환경(`application-test.yml`)에서 실행되며, 실제 운영 환경과는 다를 수 있습니다
-

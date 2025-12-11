@@ -1,6 +1,10 @@
 package com.example.batch.entity;
 
 import jakarta.persistence.*;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,6 +16,8 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@XmlRootElement(name = "customer")
+@XmlAccessorType(XmlAccessType.FIELD)
 public class Customer {
     
     @Id
@@ -31,6 +37,7 @@ public class Customer {
     private Integer age;
     
     @Column(name = "created_at")
+    @XmlTransient
     private LocalDateTime createdAt;
 }
 

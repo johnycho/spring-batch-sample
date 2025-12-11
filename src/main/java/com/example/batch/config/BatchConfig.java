@@ -9,6 +9,8 @@ import com.example.batch.reader.*;
 import com.example.batch.writer.CustomerItemWriter;
 import com.example.batch.writer.ProductItemWriter;
 import lombok.RequiredArgsConstructor;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.jpa.HibernateHints;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -22,17 +24,26 @@ import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.Order;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
+import org.springframework.batch.item.database.builder.JpaCursorItemReaderBuilder;
+import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.H2PagingQueryProvider;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.MultiResourceItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.batch.item.file.builder.MultiResourceItemReaderBuilder;
 import org.springframework.batch.item.json.JacksonJsonObjectReader;
 import org.springframework.batch.item.json.JsonItemReader;
 import org.springframework.batch.item.json.builder.JsonItemReaderBuilder;
 import org.springframework.batch.item.support.ListItemReader;
+import org.springframework.batch.item.xml.StaxEventItemReader;
+import org.springframework.batch.item.xml.builder.StaxEventItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
@@ -47,6 +58,7 @@ public class BatchConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final DataSource dataSource;
+    private final EntityManagerFactory entityManagerFactory;
     private final CustomerItemProcessor customerItemProcessor;
     private final ProductItemProcessor productItemProcessor;
 
@@ -144,6 +156,117 @@ public class BatchConfig {
         return new RepositoryItemReaderImpl<>(dataSource);
     }
 
+    /**
+     * 7. MultiResourceItemReader - 다중 CSV 파일 순차 읽기
+     */
+    @Bean
+    public ItemReader<Product> multiResourceItemReader() {
+      Resource[] resources = new Resource[] {
+          new ClassPathResource("products-part1.csv"),
+          new ClassPathResource("products-part2.csv")
+      };
+
+      return new MultiResourceItemReaderBuilder<Product>()
+          .name("multiResourceItemReader")
+          .resources(resources)
+          .delegate(multiResourceProductReader())
+          .build();
+    }
+
+    @Bean
+    public FlatFileItemReader<Product> multiResourceProductReader() {
+        return new FlatFileItemReaderBuilder<Product>()
+                .name("multiResourceProductReader")
+                .delimited()
+                .names("name", "price", "category", "stock")
+                .targetType(Product.class)
+                .linesToSkip(1)
+                .strict(false)
+                .build();
+    }
+
+    /**
+     * 8. JpaPagingItemReader - JPA 페이징 기반 읽기
+     */
+    @Bean
+    public ItemReader<Product> jpaPagingItemReader() {
+      return new JpaPagingItemReaderBuilder<Product>()
+          .name("jpaPagingItemReader")
+          .entityManagerFactory(entityManagerFactory)
+          .pageSize(3)
+          .queryString("SELECT p FROM Product p ORDER BY p.id")
+          .build();
+    }
+
+    /**
+     * 9. JpaCursorItemReader - JPA 커서 기반 읽기
+     */
+    @Bean
+    public ItemReader<Customer> jpaCursorItemReader() {
+        return new JpaCursorItemReaderBuilder<Customer>()
+                .name("jpaCursorItemReader")
+                .entityManagerFactory(entityManagerFactory)
+                .queryString("SELECT c FROM Customer c ORDER BY c.id")
+                .build();
+    }
+
+    /**
+     * 10. HintSettableJpaCursorItemReader - JPA 커서 기반 읽기 + 힌트 설정 가능
+     * JPA 쿼리 힌트(fetch size, read-only 등)를 세팅해서 성능 튜닝에 활용하는 리더
+     */
+    @Bean
+    public ItemReader<Customer> hintSettableJpaCursorItemReader() {
+        HintSettableJpaCursorItemReader<Customer> reader = new HintSettableJpaCursorItemReader<>();
+        reader.setEntityManagerFactory(entityManagerFactory);
+        reader.setQueryString("SELECT c FROM Customer c ORDER BY c.id");
+        reader.setHintValues(Map.of(HibernateHints.HINT_FETCH_SIZE, 2, HibernateHints.HINT_READ_ONLY, true));
+        return reader;
+    }
+
+    /**
+     * 11. StaxEventItemReader - XML 스트리밍 읽기
+     */
+    @Bean
+    public ItemReader<Customer> staxEventItemReader(Jaxb2Marshaller customerMarshaller) {
+      return new StaxEventItemReaderBuilder<Customer>()
+          .name("staxEventItemReader")
+          .resource(new ClassPathResource("customers.xml"))
+          .addFragmentRootElements("customer")
+          .unmarshaller(customerMarshaller)
+          .build();
+    }
+
+    @Bean
+    public Jaxb2Marshaller customerMarshaller() {
+        Jaxb2Marshaller marshaller = new Jaxb2Marshaller();
+        marshaller.setClassesToBeBound(Customer.class);
+        return marshaller;
+    }
+
+    /**
+     * 11. MappingSqlQuery 스타일 - 커스텀 RowMapper 기반 JDBC 읽기
+     */
+    @Bean
+    public ItemReader<Customer> mappingSqlQueryItemReader() {
+        RowMapper<Customer> rowMapper = (rs, rowNum) -> {
+            Customer c = new Customer();
+            c.setId(rs.getLong("id"));
+            c.setFirstName(rs.getString("first_name"));
+            c.setLastName(rs.getString("last_name"));
+            c.setEmail(rs.getString("email"));
+            c.setAge(rs.getInt("age"));
+            c.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+            return c;
+        };
+
+        return new JdbcCursorItemReaderBuilder<Customer>()
+                .name("mappingSqlQueryItemReader")
+                .dataSource(dataSource)
+                .sql("SELECT id, first_name, last_name, email, age, created_at FROM customer ORDER BY id")
+                .rowMapper(rowMapper)
+                .build();
+    }
+
     // ========== ItemProcessor ==========
     // CustomerItemProcessor와 ProductItemProcessor는 @Component로 이미 빈으로 등록되어 있음
 
@@ -220,8 +343,68 @@ public class BatchConfig {
                 .build();
     }
 
+    @Bean
+    public Step multiResourceStep() {
+        return new StepBuilder("multiResourceStep", jobRepository)
+                .<Product, Product>chunk(2, transactionManager)
+                .reader(multiResourceItemReader())
+                .processor(productItemProcessor)
+                .writer(productItemWriter())
+                .build();
+    }
+
+    @Bean
+    public Step jpaPagingStep() {
+        return new StepBuilder("jpaPagingStep", jobRepository)
+                .<Product, Product>chunk(2, transactionManager)
+                .reader(jpaPagingItemReader())
+                .processor(productItemProcessor)
+                .writer(productItemWriter())
+                .build();
+    }
+
+    @Bean
+    public Step jpaCursorStep() {
+        return new StepBuilder("jpaCursorStep", jobRepository)
+                .<Customer, CustomerProcessed>chunk(2, transactionManager)
+                .reader(jpaCursorItemReader())
+                .processor(customerItemProcessor)
+                .writer(customerItemWriter())
+                .build();
+    }
+
+    @Bean
+    public Step hintSettableJpaCursorStep() {
+        return new StepBuilder("hintSettableJpaCursorStep", jobRepository)
+                .<Customer, CustomerProcessed>chunk(2, transactionManager)
+                .reader(hintSettableJpaCursorItemReader())
+                .processor(customerItemProcessor)
+                .writer(customerItemWriter())
+                .build();
+    }
+
+    @Bean
+    public Step staxEventStep() {
+        return new StepBuilder("staxEventStep", jobRepository)
+                .<Customer, CustomerProcessed>chunk(2, transactionManager)
+                .reader(staxEventItemReader(customerMarshaller()))
+                .processor(customerItemProcessor)
+                .writer(customerItemWriter())
+                .build();
+    }
+
+    @Bean
+    public Step mappingSqlQueryStep() {
+        return new StepBuilder("mappingSqlQueryStep", jobRepository)
+                .<Customer, CustomerProcessed>chunk(2, transactionManager)
+                .reader(mappingSqlQueryItemReader())
+                .processor(customerItemProcessor)
+                .writer(customerItemWriter())
+                .build();
+    }
+
     // ========== Jobs ==========
-    
+
     @Bean
     public Job jdbcCursorJob() {
         return new JobBuilder("jdbcCursorJob", jobRepository)
@@ -261,6 +444,48 @@ public class BatchConfig {
     public Job repositoryItemJob() {
         return new JobBuilder("repositoryItemJob", jobRepository)
                 .start(repositoryItemStep())
+                .build();
+    }
+
+    @Bean
+    public Job multiResourceJob() {
+        return new JobBuilder("multiResourceJob", jobRepository)
+                .start(multiResourceStep())
+                .build();
+    }
+
+    @Bean
+    public Job jpaPagingJob() {
+        return new JobBuilder("jpaPagingJob", jobRepository)
+                .start(jpaPagingStep())
+                .build();
+    }
+
+    @Bean
+    public Job jpaCursorJob() {
+        return new JobBuilder("jpaCursorJob", jobRepository)
+                .start(jpaCursorStep())
+                .build();
+    }
+
+    @Bean
+    public Job hintSettableJpaCursorJob() {
+        return new JobBuilder("hintSettableJpaCursorJob", jobRepository)
+                .start(hintSettableJpaCursorStep())
+                .build();
+    }
+
+    @Bean
+    public Job staxEventJob() {
+        return new JobBuilder("staxEventJob", jobRepository)
+                .start(staxEventStep())
+                .build();
+    }
+
+    @Bean
+    public Job mappingSqlQueryJob() {
+        return new JobBuilder("mappingSqlQueryJob", jobRepository)
+                .start(mappingSqlQueryStep())
                 .build();
     }
 }
