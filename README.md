@@ -1,6 +1,4 @@
-# Spring Batch ItemReader 샘플 프로젝트
-
-Spring Boot + Gradle 기반의 Spring Batch 프로젝트로, 다양한 ItemReader 사용법을 보여주는 샘플입니다.
+# Spring Batch 샘플 프로젝트
 
 ## 프로젝트 구조
 
@@ -17,7 +15,7 @@ src/main/java/com/example/batch/
 └── controller/                    # Job 실행 컨트롤러
 ```
 
-## 포함된 ItemReader 종류
+## 테스트 ItemReader 종류
 
 ### 1. JdbcCursorItemReader
 - **용도**: JDBC 커서 기반 데이터 읽기
