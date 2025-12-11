@@ -2,6 +2,7 @@ package com.example.batch.reader;
 
 import com.example.batch.entity.Customer;
 import com.example.batch.entity.Product;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.Comparator;
+import java.io.IOException;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -84,7 +91,7 @@ class ReaderPerformanceTest {
 
     @Autowired
     @Qualifier("jpaPagingItemReader")
-    private ItemReader<Product> jpaPagingItemReader;
+    private ItemReader<Customer> jpaPagingItemReader;
 
     @Autowired
     @Qualifier("staxEventItemReader")
@@ -151,6 +158,17 @@ class ReaderPerformanceTest {
             Thread.sleep(100);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    @AfterAll
+    static void cleanUpDataDirectory() throws IOException {
+        Path dataDir = Paths.get("data");
+        if (Files.exists(dataDir)) {
+          Files.walk(dataDir)
+              .sorted(Comparator.reverseOrder())
+              .map(Path::toFile)
+              .forEach(File::delete);
         }
     }
 
@@ -361,7 +379,7 @@ class ReaderPerformanceTest {
         PerformanceResult result = measureReaderPerformance(
             "JpaPagingItemReader",
             jpaPagingItemReader,
-            Product.class
+            Customer.class
         );
 
         log.info("성능 측정 결과:\n{}", result);
@@ -449,7 +467,7 @@ class ReaderPerformanceTest {
         int runs = 5;
         log.info("각 리더를 {}번 실행하여 평균 성능 측정", runs);
         log.info("=".repeat(100));
-        
+
         // JdbcCursorItemReader 반복 측정
         List<PerformanceResult> cursorResults = new ArrayList<>();
         for (int i = 0; i < runs; i++) {
@@ -460,29 +478,28 @@ class ReaderPerformanceTest {
             ));
             Thread.sleep(50);
         }
-        
+
         // 평균 계산 (나노초 단위)
         double avgTimeNs = cursorResults.stream()
             .mapToLong(r -> r.totalTimeNs)
             .average()
             .orElse(0);
-        
+
         double avgTimeMs = TimeUnit.NANOSECONDS.toMillis((long)avgTimeNs);
         if (avgTimeMs == 0 && avgTimeNs > 0) {
             avgTimeMs = 1;
         }
-        
+
         double avgThroughput = cursorResults.stream()
             .mapToDouble(r -> r.itemsPerSecond)
             .average()
             .orElse(0);
-        
+
         log.info("\nJdbcCursorItemReader 평균 성능:");
         log.info("평균 처리시간: {} ms", String.format("%.2f", avgTimeMs));
         log.info("평균 처리량: {} items/sec", String.format("%.2f", avgThroughput));
         log.info("=".repeat(100));
-        
+
         assertThat(avgTimeNs).isGreaterThanOrEqualTo(0);
     }
 }
-

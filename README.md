@@ -105,16 +105,36 @@ src/main/java/com/example/batch/
 Swagger UI: http://localhost:8080/swagger-ui.html
 
 ### 3. H2 콘솔 접속
-- URL: `http://localhost:8080/h2-console`
+- URL: http://localhost:8080/h2-console
 - JDBC URL: `jdbc:h2:mem:testdb`
 - Username: `sa`
 - Password: (비어있음)
+
 
 ## 데이터베이스 스키마
 
 - `customer`: 고객 정보 테이블
 - `product`: 상품 정보 테이블
 - `customer_processed`: 처리된 고객 정보 테이블
+
+## 데이터 초기화 및 정리 컴포넌트
+
+### H2DataInitializer
+- **역할**: H2 인메모리 데이터베이스에 대용량 테스트 데이터를 초기화
+- **내용**: `customer`, `product` 테이블에 각각 10만 건의 더미 데이터를 삽입하여 JDBC/JPA 기반 ItemReader들의 성능을 동일 조건에서 비교할 수 있도록 함
+
+### FileDataInitializer
+- **역할**: 파일 기반 리더(FlatFile, Json, Stax, MultiResource 등)를 위한 대용량 테스트 파일 생성
+- **내용**:
+  - `data/products-100k.csv` : 10만 건 상품 CSV
+  - `data/products-part1-100k.csv`, `data/products-part2-100k.csv` : MultiResourceItemReader용 분할 CSV
+  - `data/customers-100k.json` : 10만 건 고객 JSON
+  - `data/customers-100k.xml` : 10만 건 고객 XML
+- 애플리케이션 기동 시 존재하지 않는 경우에만 파일을 생성
+
+### FileDataCleaner
+- **역할**: 테스트/애플리케이션 종료 시 생성된 테스트 데이터 파일 정리
+- **내용**: `data` 디렉터리를 재귀적으로 순회하며 파일 및 디렉터리를 삭제하여 매 실행마다 깨끗한 환경에서 성능 테스트를 할 수 있도록 지원
 
 ## 주요 설정
 
