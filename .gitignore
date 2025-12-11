@@ -1,0 +1,14 @@
+# 전체 build 디렉토리 ignore
+build/
+*/build/
+
+# Gradle cache, state
+.gradle/
+
+# IntelliJ IDEA config
+.idea/
+
+# Gradle Wrapper (tracked)
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.properties

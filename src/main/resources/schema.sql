@@ -1,0 +1,26 @@
+CREATE TABLE IF NOT EXISTS customer (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100),
+    age INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS product (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    price DECIMAL(10, 2),
+    category VARCHAR(50),
+    stock INT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS customer_processed (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    customer_id BIGINT NOT NULL,
+    full_name VARCHAR(100),
+    email VARCHAR(100),
+    age INT,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
